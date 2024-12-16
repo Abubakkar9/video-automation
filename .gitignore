@@ -1,0 +1,9 @@
+.env
+static/videos
+temp_images
+uploads
+audios
+*.mp4
+*.mp3
+__pycache__
+venv

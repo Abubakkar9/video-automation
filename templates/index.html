@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Generation Automation Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        input, textarea, select, button {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 0.75rem;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .output-section {
+            margin-top: 2rem;
+        }
+
+        .output-section h2 {
+            margin-bottom: 1rem;
+        }
+
+        .scripts-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .scripts-list li {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+    </style>    
+</head>
+<body>
+    <header>
+        <h1>Video Generation Automation Tool</h1>
+    </header>
+
+    <div class="container">
+        <!-- Script Generation Section -->
+        <div class="form-section">
+            <h2>1. Script Generation</h2>
+            <label for="video-idea">Enter Video Idea</label>
+            <textarea id="video-idea" rows="4" placeholder="Describe your video idea..."></textarea>
+        
+            <label for="num-scripts">Number of Scripts to Generate</label>
+            <input type="number" id="num-scripts" min="1" max="10" value="1">
+        
+            <button id="generate-scripts">Generate Scripts</button>
+        </div>
+        
+         <!-- Output Section -->
+         <div class="output-section" id="output">
+            <h2>Generated Scripts</h2>
+            <ul class="scripts-list" id="scripts-list">
+                <!-- Script options will appear here -->
+            </ul>
+        </div>
+        <!-- Section to display generated scripts -->
+        <div id="generated-scripts" class="generated-scripts">
+            <!-- Generated scripts will be displayed here -->
+        </div>
+
+        <!-- Voice Actor Selection Section -->
+        <div class="form-section">
+            <h2>2. Voice Actor Selection</h2>
+            <label for="voice-actors">Choose Voice Actors</label>
+            <select id="voice-actors" multiple>
+                {% for actor in voice_actors %}
+                <option value="{{ actor['voice_id'] }}">{{ actor['name'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Image Generation Section -->
+        <div class="form-section">
+            <h2>3. Image Generation</h2>
+            <label for="base-image">Upload Base Image</label>
+            <input type="file" id="base-image" accept="image/*">
+
+            <label for="num-styles">Number of Visual Styles</label>
+            <input type="number" id="num-styles" min="5" max="50" step="5" value="5">
+
+            <label for="custom-prompts">Custom Prompts (optional)</label>
+            <textarea id="custom-prompts" rows="3" placeholder="Enter custom image prompts..."></textarea>
+        </div>
+
+        <!-- Video Assembly Section -->
+        <div class="form-section">
+            <h2>4. Video Assembly</h2>
+            <button id="generate-videos">Generate Videos</button>
+        </div>
+        <h2>Generated Videos</h2>
+        <div id="generated-videos"></div>
+    </div>
+    <script>
+        var scripts = [];
+        document.getElementById('generate-scripts').addEventListener('click', function() {
+            // Get the values from the form
+            const videoIdea = document.getElementById('video-idea').value;
+            const numScripts = document.getElementById('num-scripts').value;
+            // Clear any previous scripts
+            document.getElementById('generated-scripts').innerHTML = '';
+        
+            // Make the AJAX request to the server
+            fetch('/generate-scripts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'video_idea': videoIdea,
+                    'num_scripts': numScripts
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Handle the response and display the generated scripts
+                const scriptsContainer = document.getElementById('generated-scripts');
+                if (data.scripts && data.scripts.length > 0) {
+                    scripts = data.scripts;
+                    let a = 1;
+                    data.scripts.forEach(script => {
+                        const scriptElement = document.createElement('p');
+                        scriptElement.textContent = a.toString() + '. ' + script;
+                        scriptsContainer.appendChild(scriptElement);
+                        a++;
+                    });
+                } else {
+                    scriptsContainer.textContent = "No scripts generated. Please check your input.";
+                }
+            })
+            .catch(error => {
+                // Handle any errors that occur during the fetch
+                console.error('Error:', error);
+                document.getElementById('generated-scripts').textContent = "An error occurred while generating scripts.";
+            });
+        });
+        document.getElementById('generate-videos').addEventListener('click', function() {
+            // Get the values from the form
+            const numScripts = document.getElementById('num-scripts').value;
+            const fileInput = document.getElementById('base-image');
+            const base_image = fileInput.files[0];  // Get the file (base image)
+            const voice_actors = [];
+            const videos = document.getElementById('generated-videos');
+            videos.innerHTML = '';
+            const num_of_images = document.getElementById('num-styles').value;
+
+            // Get the select element by its ID
+            const selectElement = document.getElementById('voice-actors');
+
+            // Loop through all option elements
+            for (let option of selectElement.options) {
+                if (option.selected) {
+                    voice_actors.push(option.value);  // Add selected option value to the array
+                }
+            }
+
+            // Create a FormData object
+            const formData = new FormData();
+            console.log(scripts);
+            formData.append('scripts', JSON.stringify(scripts));  // Append other form data
+            formData.append('num_of_images', num_of_images);
+            formData.append('base_image', base_image);  // Append the base image file
+            formData.append('voice_actors', JSON.stringify(voice_actors));  // Send voice actors as a JSON string
+
+            // Make the AJAX request to the server
+            fetch('/generate-videos', {
+                method: 'POST',
+                body: formData,  // Send the FormData object
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                Object.keys(data.videos).forEach((voice_actor) => {
+                    data.videos[voice_actor].forEach((video) => {
+                        // Create the video element
+                        const videoElement = document.createElement('video');
+                        videoElement.setAttribute('width', '320');
+                        videoElement.setAttribute('height', '240');
+                        videoElement.setAttribute('controls', '');
+
+                        // Create the source element
+                        const sourceElement = document.createElement('source');
+                        sourceElement.setAttribute('src', video);
+                        sourceElement.setAttribute('type', 'video/mp4');
+
+                        // Append the source to the video element
+                        videoElement.appendChild(sourceElement);
+
+                        // Append the video element to the container
+                        videos.appendChild(videoElement);
+                    });
+                })
+            .catch(error => {
+                console.error(error);
+            });
+        });
+    });
+        </script>    
+</body>
+</html>
